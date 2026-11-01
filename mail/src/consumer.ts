@@ -31,7 +31,7 @@ export const startSendOtpConsumer = async () => {
           const { to, subject, body } = JSON.parse(msg.content.toString());
 
           const { data, error } = await resend.emails.send({
-            from: 'ChatBox <onboarding@resend.dev>',
+            from: 'ChatBox <patelgood3@gmail.com>',
             to: [to],
             subject: subject,
             text: body,
