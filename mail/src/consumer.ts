@@ -16,10 +16,12 @@ export const startSendOtpConsumer = async () => {
     });
 
     const channel = await connection.createChannel();
-
     const queueName = "send-otp";
 
     await channel.assertQueue(queueName, { durable: true });
+
+    // Process one message at a time to prevent rate limits
+    channel.prefetch(1);
 
     console.log("✅ Mail Service consumer started, listening for otp emails");
 
@@ -29,7 +31,7 @@ export const startSendOtpConsumer = async () => {
           const { to, subject, body } = JSON.parse(msg.content.toString());
 
           const { data, error } = await resend.emails.send({
-            from: 'ChatBox <onboarding@resend.dev>', // Use your verified domain later if you have one
+            from: 'ChatBox <onboarding@resend.dev>',
             to: [to],
             subject: subject,
             text: body,
@@ -37,6 +39,8 @@ export const startSendOtpConsumer = async () => {
 
           if (error) {
             console.error('Failed to send otp via Resend:', error);
+            // ACK the message so RabbitMQ removes it instead of looping infinitely
+            channel.ack(msg);
             return;
           }
 
@@ -44,6 +48,7 @@ export const startSendOtpConsumer = async () => {
           channel.ack(msg);
         } catch (error) {
           console.log("Failed to process message", error);
+          channel.ack(msg); // ACK on failure to prevent crash/redelivery loops
         }
       }
     });
