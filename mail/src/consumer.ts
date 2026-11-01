@@ -29,7 +29,7 @@ export const startSendOtpConsumer = async () => {
           const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",
             port: 465,
-            secure: false, //for aws
+            secure: true, //for aws
             auth: {
               user: process.env.USER,
               pass: process.env.PASSWORD,
