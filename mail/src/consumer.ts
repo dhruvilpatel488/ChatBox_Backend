@@ -1,7 +1,9 @@
 import amqp from "amqplib";
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import { Resend } from 'resend';
 dotenv.config();
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const startSendOtpConsumer = async () => {
   try {
@@ -26,31 +28,27 @@ export const startSendOtpConsumer = async () => {
         try {
           const { to, subject, body } = JSON.parse(msg.content.toString());
 
-          const transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com",
-            port: 465,
-            secure: true, //for aws
-            auth: {
-              user: process.env.USER,
-              pass: process.env.PASSWORD,
-            },
-          });
-
-          await transporter.sendMail({
-            from: "Chat app",
-            to,
-            subject,
+          const { data, error } = await resend.emails.send({
+            from: 'ChatBox <onboarding@resend.dev>', // Use your verified domain later if you have one
+            to: [to],
+            subject: subject,
             text: body,
           });
 
-          console.log(`OTP mail sent to ${to}`);
+          if (error) {
+            console.error('Failed to send otp via Resend:', error);
+            return;
+          }
+
+          console.log(`OTP mail sent to ${to}`, data);
           channel.ack(msg);
         } catch (error) {
-          console.log("Failed to send otp", error);
+          console.log("Failed to process message", error);
         }
       }
     });
+
   } catch (error) {
-    console.log("Failed to start rabbitmq consumer", error);
+    console.error("RabbitMQ connection error:", error);
   }
 };
